@@ -67,7 +67,8 @@ public class FirstLab extends JPanel {
         graphFrame.getContentPane().setCursor(blankCursor);
 
         graphFrame.setPreferredSize(graphWindowSize);
-        graphFrame.setMinimumSize(new Dimension(500, 500));
+        graphFrame.setPreferredSize(new Dimension(500, 500));
+        graphFrame.setMinimumSize(new Dimension(100, 100));
         graphFrame.pack();
         graphFrame.setVisible(true);
     }
@@ -76,7 +77,7 @@ public class FirstLab extends JPanel {
 class OpenGraphListener implements ActionListener {
     JTextField textFieldA;
     JTextField textFieldB;
-    public static String values = "123456789.";
+    public static String values = "1234567890.";
 
     public OpenGraphListener(JTextField textFieldA, JTextField textFieldB) {
         this.textFieldA = textFieldA;

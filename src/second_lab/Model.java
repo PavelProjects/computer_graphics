@@ -1,9 +1,10 @@
 package second_lab;
 
 import java.awt.*;
+import java.awt.event.*;
 import java.util.List;
 
-public class Model {
+public class Model  implements MouseWheelListener, MouseMotionListener, MouseListener, ComponentListener {
     List<Vertex> vertexes;
     int vertexes_count;
 
@@ -22,14 +23,66 @@ public class Model {
         return vertexes;
     }
 
-}
+    public void setVertexes(List<Vertex> vertexes) {
+        this.vertexes = vertexes;
+    }
 
-class Vertex {
-    double x, y, z;
+    @Override
+    public void componentResized(ComponentEvent e) {
 
-    public Vertex(double x, double y, double z){
-        this.x = x;
-        this.y = y;
-        this.z = z;
+    }
+
+    @Override
+    public void componentMoved(ComponentEvent e) {
+
+    }
+
+    @Override
+    public void componentShown(ComponentEvent e) {
+
+    }
+
+    @Override
+    public void componentHidden(ComponentEvent e) {
+
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+
     }
 }
