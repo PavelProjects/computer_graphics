@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-class GraphPanel extends JPanel implements MouseWheelListener, MouseMotionListener, MouseListener, ComponentListener {
+public class GraphPanel extends JPanel implements MouseWheelListener, MouseMotionListener, MouseListener, ComponentListener {
     float a, b;
     String s_a, s_b;
     int x0, y0, oldW, oldH, gap;

@@ -5,9 +5,10 @@ import java.awt.*;
 import java.util.ArrayList;
 
 public class SecondLab extends JPanel {
-    public static String lab_name = "First Lab";
+    public static String lab_name = "Second Lab";
 
     private static Dimension mainWindowSize = new Dimension(800, 800);
+    private static Dimension minWindowSize = new Dimension(200, 200);
 
 
     public static void main(String args[]) {
@@ -15,21 +16,19 @@ public class SecondLab extends JPanel {
             JFrame mainWindow = new JFrame(lab_name);
             mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            CubeModel cube ;
-            ArrayList<Vertex> vertexList = new ArrayList<>();
-            vertexList.add(new Vertex(0, 0, 0));
-            cube = new CubeModel(vertexList, 100);
+            CubeModel cube = new CubeModel(200);
 
             ModelPanel modelPanel = new ModelPanel(cube);
             mainWindow.add(modelPanel, BorderLayout.CENTER);
 
-            mainWindow.addComponentListener(cube);
-            mainWindow.addMouseListener(cube);
-            mainWindow.addMouseMotionListener(cube);
-            mainWindow.addMouseWheelListener(cube);
+            mainWindow.addMouseMotionListener(modelPanel);
+            mainWindow.addMouseListener(modelPanel);
+            mainWindow.addMouseWheelListener(modelPanel);
+            mainWindow.addComponentListener(modelPanel);
 
             mainWindow.setPreferredSize(mainWindowSize);
-            mainWindow.setResizable(false);
+            mainWindow.setMinimumSize(minWindowSize);
+            mainWindow.setResizable(true);
             mainWindow.pack();
             mainWindow.setVisible(true);
         });

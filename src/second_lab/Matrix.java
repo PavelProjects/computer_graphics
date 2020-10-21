@@ -26,7 +26,14 @@ class Matrix {
         return this.matrix[i][j];
     }
 
-    public Matrix getIdentityMatrix() {
+    public void printMatrix(){
+        System.out.println("MATRIX : ");
+        for (int i = 0; i < 3; i++)
+                System.out.println(String.format("%-10f %-10f %-10f", matrix[i][0], matrix[i][1],matrix[i][2]));
+        System.out.println();
+    }
+
+    public static Matrix getIdentityMatrix() {
         Matrix res = new Matrix();
         for (int i = 0; i < 4; i++) {
             res.matrix[i][i] = 1;
@@ -34,7 +41,7 @@ class Matrix {
         return res;
     }
 
-    public Matrix getTranslateMatrix(double tx, double ty, double tz) {
+    public static Matrix getTranslateMatrix(double tx, double ty, double tz) {
         Matrix res = getIdentityMatrix();
         res.setValue(3, 0, tx);
         res.setValue(3, 1, ty);
@@ -43,7 +50,7 @@ class Matrix {
         return res;
     }
 
-    public Matrix getScalingMatrix(double sx, double sy, double sz){
+    public static Matrix getScalingMatrix(double sx, double sy, double sz){
         Matrix res = new Matrix();
         res.setValue(0, 0 , sx);
         res.setValue(1, 1, sy);
@@ -53,13 +60,16 @@ class Matrix {
         return res;
     }
 
-    public double[] multiplyMatrixToVector(double[] vector) throws Exception {
-        if (vector.length != 4)
-            throw new Exception("Wrong vector length");
-        double[] res = new double[4];
+    public Vertex multiplyMatrixToVector(double x, double y, double z){
+        double[] res = multiplyMatrixToVector(new double[]{x, y, z, 1});
+        return new Vertex(res[0]/res[3], res[1]/res[3], res[2]/res[3]);
+    }
+
+    private double[] multiplyMatrixToVector(double[] vector){
+        double[] res = new double[]{0,0,0,0};
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
-                res[i] += vector[i] * matrix[i][j];
+                res[i] += vector[j] * matrix[j][i];
 
         return res;
     }
@@ -70,12 +80,13 @@ class Matrix {
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
                 for (int k = 0; k < 4; k++)
-                    res.matrix[i][j] += this.matrix[i][k] * m.matrix[k][i];
+                    res.matrix[i][j] += this.matrix[i][k] * m.matrix[k][j];
 
         return res;
     }
 
-    private Matrix rotate(double angle, int i, int j){
+    private static Matrix rotate(double angle, int i, int j){
+        angle = Math.toRadians(angle);
         Matrix res = getIdentityMatrix();
         double val = Math.cos(angle);
 
@@ -87,40 +98,22 @@ class Matrix {
         return res;
     }
 
-    public Matrix rotateMatrixX(double angle){
+    public static Matrix rotateMatrixX(double angle){
         return rotate(angle, 1, 2);
     }
-    public Matrix rotateMatrixY(double angle){
+    public static Matrix rotateMatrixY(double angle){
         return rotate(angle, 2, 0);
     }
-    public Matrix rotateMatrixZ(double angle){
-        return  rotate(angle, 0, 1);
-    }
-}
-
-
-class Vertex {
-    double x, y, z;
-
-    public Vertex(double x, double y, double z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+    public static Matrix rotateMatrixZ(double angle){
+        return rotate(angle, 0, 1);
     }
 
-    public double getX() {
-        return x;
+    public static Matrix getProjectionMatrix(int i, double k){
+        Matrix m = getIdentityMatrix();
+        m.matrix[3][3] = 0;
+        m.matrix[i][3] = k;
+
+        return m;
     }
 
-    public double getY() {
-        return y;
-    }
-
-    public double getZ() {
-        return z;
-    }
-
-    public void printVert() {
-        System.out.println(String.format("|x=%-10f y=%-10f z=%-10f", x, y, z));
-    }
 }
