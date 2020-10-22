@@ -20,6 +20,7 @@ public class Model {
         m = m.multiplyMatrixToMatrix(Matrix.rotateMatrixY(angleY));
         m = m.multiplyMatrixToMatrix(Matrix.getTranslateMatrix(0, 0, 2.0f));
         m = m.multiplyMatrixToMatrix(Matrix.getScalingMatrix(scale, -scale, 1));
+//        m = m.multiplyMatrixToMatrix(Matrix.getProjectionMatrix(2, 0.1));
 
         faces.forEach(f -> f.draw(g, m));
     }
@@ -42,23 +43,36 @@ public class Model {
         return faces;
     }
 
+    public int getMaxX(){
+        return  faces.stream().map(ModelFace::getMaxX).max(Integer::compare).get();
+    }
+
+    public int getMaxY(){
+        return  faces.stream().map(ModelFace::getMaxY).max(Integer::compare).get();
+    }
 }
 
 class ModelFace {
     private List<Vertex> vertexes, vertexRendered;
-    private Vertex center;
-    private CenterConcumer<List<Vertex>, Vertex> centerConsumer;
-    private DrawConsumer<Graphics, List<Vertex>> drawConsumer;
+    private final Vertex center;
+    private final CenterConcumer<List<Vertex>, Vertex> centerConsumer;
+    private final DrawConsumer<Graphics, List<Vertex>> drawConsumer;
     private boolean visible = true;
     private Color color;
     private ModelFace pair;
+    private String name;
+    private final int visibleAngleX;
+    private final int visibleAngleY;
 
-    public ModelFace(List<Vertex> vertices, Color color, CenterConcumer<List<Vertex>, Vertex> centerFunction, DrawConsumer<Graphics, List<Vertex>> drawConsumer) {
+    public ModelFace(String name, List<Vertex> vertices, Color color, CenterConcumer<List<Vertex>, Vertex> centerFunction, DrawConsumer<Graphics, List<Vertex>> drawConsumer, int vX, int vY) {
         this.vertexes = this.vertexRendered = vertices;
         this.color = color;
         this.centerConsumer = centerFunction;
         this.drawConsumer = drawConsumer;
         this.center = new Vertex(0, 0, 0);
+        this.name = name;
+        this.visibleAngleX = vX;
+        this.visibleAngleY = vY;
     }
 
     public List<Vertex> getVertexes() {
@@ -83,6 +97,34 @@ class ModelFace {
 
     public ModelFace getPair() {
         return pair;
+    }
+
+    public void setColor(Color color) {
+        this.color = color;
+    }
+
+    public void setName(String name){
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getVisibleAngleX() {
+        return visibleAngleX;
+    }
+
+    public int getVisibleAngleY() {
+        return visibleAngleY;
+    }
+
+    public int getMaxX() {
+        return vertexRendered.stream().map(Vertex::getIntX).max(Integer::compare).get();
+    }
+
+    public int getMaxY() {
+        return  vertexRendered.stream().map(Vertex::getIntY).max(Integer::compare).get();
     }
 
     public void transform(Matrix m) {

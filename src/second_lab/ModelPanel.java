@@ -3,13 +3,14 @@ package second_lab;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.concurrent.TimeUnit;
 
 public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotionListener, MouseListener, ComponentListener, KeyListener {
     Model model;
-    double angleY = 0, angleX = 0;
+    double angleY = 50, angleX = 30;
     int prevX = 0, prevY = 0;
     int x0, y0;
-    double scale = 0.5;
+    double scale = 1;
 
     public ModelPanel(Model model) {
         this.model = model;
@@ -57,9 +58,21 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
     public void mouseDragged(MouseEvent e) {
         angleX += prevX - e.getX();
         angleY += prevY - e.getY();
-        repaint();
+
+        if (angleX > 360) {
+            angleX = 0;
+        } else if (angleX < 0) {
+            angleX = 360;
+        }
+        if (angleY > 360) {
+            angleY = 0;
+        } else if (angleY < 0) {
+            angleY = 360;
+        }
         prevX = e.getX();
         prevY = e.getY();
+
+        paintComponent(getGraphics());
     }
 
     @Override
@@ -74,13 +87,15 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
         } else {
             scale = scale < 1000 ? scale + 0.1 : scale;
         }
-        repaint();
+        paintComponent(getGraphics());
     }
 
     @Override
     public void componentResized(ComponentEvent e) {
         x0 = getWidth() / 2;
         y0 = getHeight() / 2;
+        System.out.println(model.getMaxX() + "::" + model.getMaxY() + "::" + scale); //найти функцию для подгона под окна и будет все
+        System.out.println("---------------------------------------");
     }
 
     @Override
@@ -108,17 +123,55 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
 
     @Override
     public void keyReleased(KeyEvent e) {
-        System.out.println(e.getKeyCode());
-        switch (e.getKeyCode()){
-            case 49:
-                angleX = 0;
-                angleY = 0;
-                break;
-            case 50:
-                angleX = 0;
-                angleY = 90;
-                break;
+        int index;
+        try {
+            index = Integer.parseInt(String.valueOf(e.getKeyChar()));
+        } catch (Exception e1) {
+            index = 0;
         }
-        repaint();
+
+        index--;
+        showFaceByIndex(index);
+    }
+
+    public void showFaceByIndex(int index){
+        if (index >= 0 && index < model.getFaces().size()) {
+            showFace(model.getFaces().get(index));
+        }else{
+            showFace(null);
+        }
+    }
+
+
+    public void showFace(ModelFace face) {
+        final int aX, aY;
+        if (face != null) {
+            aX = face.getVisibleAngleX();
+            aY = face.getVisibleAngleY();
+        } else {
+            aX = 45;
+            aY = 45;
+        }
+
+        int signX = aX < angleX ? -1 : 1;
+        int signY = aY < angleY ? -1 : 1;
+        Runnable animation = new Runnable() {
+            @Override
+            public void run() {
+                while (angleX != aX || angleY != aY) {
+                    angleX = angleX != aX ? angleX + signX : angleX;
+                    angleY = angleY != aY ? angleY + signY : angleY;
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(5);
+                        paintComponent(getGraphics());
+                    } catch (InterruptedException interruptedException) {
+                        interruptedException.printStackTrace();
+                    }
+                }
+            }
+        };
+        animation.run();
     }
 }
+
+
