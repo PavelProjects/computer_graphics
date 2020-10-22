@@ -6,61 +6,59 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Model {
-    protected List<ModelFace> facesOriginal, facesRender;
+    protected List<ModelFace> faces;
     protected Vertex center;
+    private Matrix m;
 
     public Model() {
-        this.facesOriginal = new ArrayList<>();
+        this.faces = new ArrayList<>();
     }
 
     public void draw(Graphics g, double angleX, double angleY, double scale) {
-        Matrix m = Matrix.getIdentityMatrix();
+        m = Matrix.getIdentityMatrix();
         m = m.multiplyMatrixToMatrix(Matrix.rotateMatrixX(angleX));
         m = m.multiplyMatrixToMatrix(Matrix.rotateMatrixY(angleY));
         m = m.multiplyMatrixToMatrix(Matrix.getTranslateMatrix(0, 0, 2.0f));
         m = m.multiplyMatrixToMatrix(Matrix.getScalingMatrix(scale, -scale, 1));
 
-        facesRender = transform(m);
-        System.out.println("----------------------------");
-//        printFaces(facesRender);
-        facesRender.forEach(f -> f.draw(g));
+        faces.forEach(f -> f.draw(g, m));
     }
 
-    public Vertex getCenter(){
+    public Vertex getCenter() {
         return center;
     }
 
-    private List<ModelFace> transform( Matrix m) {
-        return facesOriginal.stream().map(f -> f.transform(m)).collect(Collectors.toList());
-    }
-
     public void printFaces(List<ModelFace> faces) {
-        for (int i = 0; i <  faces.size(); i++) {
+        for (int i = 0; i < faces.size(); i++) {
             System.out.println(String.format("Face #%d", i));
-            for (Vertex v :  faces.get(i).getVertexes()) {
+            for (Vertex v : faces.get(i).getVertexes()) {
                 v.printVert();
             }
             System.out.println("-------------------------\n");
         }
     }
 
-    public List<ModelFace> getFacesOriginal() {
-        return facesOriginal;
+    public List<ModelFace> getFaces() {
+        return faces;
     }
 
-    public void setFacesOriginal(List<ModelFace> facesOriginal) {
-        this.facesOriginal = facesOriginal;
-    }
 }
 
 class ModelFace {
-    private List<Vertex> vertexes;
+    private List<Vertex> vertexes, vertexRendered;
+    private Vertex center;
+    private CenterConcumer<List<Vertex>, Vertex> centerConsumer;
+    private DrawConsumer<Graphics, List<Vertex>> drawConsumer;
     private boolean visible = true;
     private Color color;
+    private ModelFace pair;
 
-    public ModelFace(List<Vertex> vertices, Color color) {
-        this.vertexes = vertices;
+    public ModelFace(List<Vertex> vertices, Color color, CenterConcumer<List<Vertex>, Vertex> centerFunction, DrawConsumer<Graphics, List<Vertex>> drawConsumer) {
+        this.vertexes = this.vertexRendered = vertices;
         this.color = color;
+        this.centerConsumer = centerFunction;
+        this.drawConsumer = drawConsumer;
+        this.center = new Vertex(0, 0, 0);
     }
 
     public List<Vertex> getVertexes() {
@@ -79,29 +77,44 @@ class ModelFace {
         this.visible = visible;
     }
 
-    public ModelFace transform(Matrix m) {
-        ModelFace res = new ModelFace(vertexes.stream().map(v -> m.multiplyMatrixToVector(v.getX(), v.getY(), v.getZ())).collect(Collectors.toList()), this.color);
-        double ax = res.getVertexes().get(2).getX() - res.getVertexes().get(0).getX();
-        double ay = res.getVertexes().get(2).getY() - res.getVertexes().get(0).getY();
-        double bx = res.getVertexes().get(3).getX() - res.getVertexes().get(1).getX();
-        double by = res.getVertexes().get(3).getY() - res.getVertexes().get(1).getY();
-        System.out.println(ax * by - ay * bx);
-        res.setVisible(ax * by - ay * bx > 0); //сделать так, что бы только задняя стенка не отрисовывалась
-
-        return res;
+    public void setPair(ModelFace pair) {
+        this.pair = pair;
     }
 
-    public void draw(Graphics g) {
-        if (visible) {
-            g.setColor(color);
-            for (int i = 0; i < vertexes.size() - 1; i++) {
-                g.drawLine(vertexes.get(i).getIntX(), vertexes.get(i).getIntY(), vertexes.get(i + 1).getIntX(), vertexes.get(i + 1).getIntY());
-            }
-            g.drawLine(vertexes.get(0).getIntX(), vertexes.get(0).getIntY(), vertexes.get(vertexes.size() - 1).getIntX(), vertexes.get(vertexes.size() - 1).getIntY());
+    public ModelFace getPair() {
+        return pair;
+    }
 
-            g.drawLine(vertexes.get(0).getIntX(), vertexes.get(0).getIntY(), vertexes.get(2).getIntX(), vertexes.get(2).getIntY());
-            g.drawLine(vertexes.get(1).getIntX(), vertexes.get(1).getIntY(), vertexes.get(3).getIntX(), vertexes.get(3).getIntY());
+    public void transform(Matrix m) {
+        vertexRendered = vertexes.stream().map(v -> m.multiplyMatrixToVector(v.getX(), v.getY(), v.getZ())).collect(Collectors.toList());
+        if (pair != null) {
+            pair.updateCenter();
+            double vz = Math.signum(pair.getCenter().getZ() - this.getCenter().getZ());
+            if (vz > 0) {
+                pair.setVisible(false);
+                this.setVisible(true);
+            } else {
+                pair.setVisible(true);
+                this.setVisible(false);
+            }
         }
+    }
+
+    public void draw(Graphics g, Matrix m) {
+        updateCenter();
+        transform(m);
+        if (isVisible()) {
+            g.setColor(color);
+            drawConsumer.draw(g, vertexRendered);
+        }
+    }
+
+    public Vertex getCenter() {
+        return center;
+    }
+
+    public void updateCenter() {
+        centerConsumer.calculate(vertexRendered, center);
     }
 }
 
@@ -111,6 +124,18 @@ class Vertex {
     public Vertex(double x, double y, double z) {
         this.x = x;
         this.y = y;
+        this.z = z;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public void setZ(double z) {
         this.z = z;
     }
 
@@ -141,4 +166,13 @@ class Vertex {
     public void printVert() {
         System.out.println(String.format("|x=%-10f y=%-10f z=%-10f|", x, y, z));
     }
+}
+
+@FunctionalInterface
+interface CenterConcumer<T, U>{
+    void calculate(T l, U v);
+}
+@FunctionalInterface
+interface DrawConsumer<T, U>{
+    void draw(T a, U b);
 }

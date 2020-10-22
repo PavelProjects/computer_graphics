@@ -25,6 +25,7 @@ public class SecondLab extends JPanel {
             mainWindow.addMouseListener(modelPanel);
             mainWindow.addMouseWheelListener(modelPanel);
             mainWindow.addComponentListener(modelPanel);
+            mainWindow.addKeyListener(modelPanel);
 
             mainWindow.setPreferredSize(mainWindowSize);
             mainWindow.setMinimumSize(minWindowSize);
