@@ -4,16 +4,50 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotionListener, MouseListener, ComponentListener, KeyListener {
     Model model;
     double angleY = 50, angleX = 30;
     int prevX = 0, prevY = 0;
     int x0, y0;
+    int gap = 50;
     double scale = 1;
+    private AtomicInteger threadRunFlag = new AtomicInteger(0);
+    private Runnable updateViewRunnable;
+
+    Thread updateViewThread = new Thread();
+    Thread spinModelThread = new Thread();
+    Thread changeAngleThread = new Thread();
 
     public ModelPanel(Model model) {
         this.model = model;
+        updateViewRunnable = new Runnable() {
+            @Override
+            public void run() {
+                while (threadRunFlag.get() != 0) {
+                    repaint();
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        threadRunFlag.set(0);
+                    }
+                }
+                System.out.println("update stoped");
+            }
+        };
+    }
+
+    public void rescale() {
+        int gapX = x0 - model.getMaxX();
+        int gapY = y0 - model.getMaxY();
+
+        if (gap < Math.min(gapX, gapY)) {
+            scale += 0.025;
+        } else {
+            scale -= 0.025;
+        }
     }
 
     @Override
@@ -23,7 +57,7 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
         g.fillRect(0, 0, getWidth(), getHeight());
         g.translate(x0, y0);
         g.setColor(Color.BLACK);
-//        model.draw(g, sliderX.getValue(), sliderY.getValue());
+
         model.draw(g, angleY, angleX, scale);
     }
 
@@ -37,6 +71,7 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
     public void mousePressed(MouseEvent e) {
         prevY = e.getY();
         prevX = e.getX();
+        threadRunFlag.set(0);
     }
 
     @Override
@@ -71,8 +106,7 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
         }
         prevX = e.getX();
         prevY = e.getY();
-
-        paintComponent(getGraphics());
+        repaint();
     }
 
     @Override
@@ -83,19 +117,22 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         if (e.getWheelRotation() > 0) {
-            scale = scale - 0.1;
+            scale = scale > 0 ? scale - 0.1 : scale;
         } else {
             scale = scale < 1000 ? scale + 0.1 : scale;
         }
-        paintComponent(getGraphics());
+        int gapX = x0 - model.getMaxX();
+        int gapY = y0 - model.getMaxY();
+        gap = Math.min(gapX, gapY);
+
+        repaint();
     }
 
     @Override
     public void componentResized(ComponentEvent e) {
         x0 = getWidth() / 2;
         y0 = getHeight() / 2;
-        System.out.println(model.getMaxX() + "::" + model.getMaxY() + "::" + scale); //найти функцию для подгона под окна и будет все
-        System.out.println("---------------------------------------");
+        rescale();
     }
 
     @Override
@@ -134,16 +171,29 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
         showFaceByIndex(index);
     }
 
-    public void showFaceByIndex(int index){
+    public void showFaceByIndex(int index) {
         if (index >= 0 && index < model.getFaces().size()) {
             showFace(model.getFaces().get(index));
-        }else{
+        } else {
             showFace(null);
         }
     }
 
 
     public void showFace(ModelFace face) {
+        threadRunFlag.set(0);
+
+        try {
+            if(spinModelThread.isAlive()) {
+                spinModelThread.join();
+            }
+            if(changeAngleThread.isAlive()){
+                changeAngleThread.join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         final int aX, aY;
         if (face != null) {
             aX = face.getVisibleAngleX();
@@ -153,25 +203,70 @@ public class ModelPanel extends JPanel implements MouseWheelListener, MouseMotio
             aY = 45;
         }
 
-        int signX = aX < angleX ? -1 : 1;
-        int signY = aY < angleY ? -1 : 1;
-        Runnable animation = new Runnable() {
+        double signX = aX < angleX ? -0.5 : 0.5;
+        double signY = aY < angleY ? -0.5 : 0.5;
+
+        changeAngleThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while (angleX != aX || angleY != aY) {
-                    angleX = angleX != aX ? angleX + signX : angleX;
-                    angleY = angleY != aY ? angleY + signY : angleY;
+                while ((angleX != aX || angleY != aY) && threadRunFlag.get() == 1) {
                     try {
+                        angleX = (int) angleX != aX ? angleX + signX : (int) angleX;
+                        angleY = (int) angleY != aY ? angleY + signY : (int) angleY;
                         TimeUnit.MILLISECONDS.sleep(5);
-                        paintComponent(getGraphics());
                     } catch (InterruptedException interruptedException) {
                         interruptedException.printStackTrace();
+                        threadRunFlag.set(0);
                     }
                 }
+                threadRunFlag.set(0);
+                System.out.println("change angle stoped");
             }
-        };
-        animation.run();
+        });
+        updateViewThread = new Thread(updateViewRunnable);
+
+        threadRunFlag.set(1);
+        updateViewThread.start();
+        changeAngleThread.start();
+    }
+
+    public void spinModel() {
+        threadRunFlag.set(0);
+
+        try {
+            if(spinModelThread.isAlive()) {
+                spinModelThread.join();
+            }
+            if(changeAngleThread.isAlive()){
+                changeAngleThread.join();
+            }
+            if(updateViewThread.isAlive()){
+                updateViewThread.join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        updateViewThread = new Thread(updateViewRunnable);
+        spinModelThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (threadRunFlag.get() != 0) {
+                    angleX = angleX < 360 ? angleX + 0.2 : 0;
+                    angleY = angleY > 0 ? angleY - 0.2 : 360;
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        threadRunFlag.set(0);
+                    }
+                }
+                System.out.println("spin stoped");
+            }
+        });
+
+        threadRunFlag.set(1);
+        spinModelThread.start();
+        updateViewThread.start();
     }
 }
-
-

@@ -9,6 +9,7 @@ public class Model {
     protected List<ModelFace> faces;
     protected Vertex center;
     private Matrix m;
+    private boolean projected = false;
 
     public Model() {
         this.faces = new ArrayList<>();
@@ -20,7 +21,7 @@ public class Model {
         m = m.multiplyMatrixToMatrix(Matrix.rotateMatrixY(angleY));
         m = m.multiplyMatrixToMatrix(Matrix.getTranslateMatrix(0, 0, 2.0f));
         m = m.multiplyMatrixToMatrix(Matrix.getScalingMatrix(scale, -scale, 1));
-//        m = m.multiplyMatrixToMatrix(Matrix.getProjectionMatrix(2, 0.1));
+        if(projected) m = m.multiplyMatrixToMatrix(Matrix.getProjectionMatrix(2, 0.6));
 
         faces.forEach(f -> f.draw(g, m));
     }
@@ -49,6 +50,10 @@ public class Model {
 
     public int getMaxY(){
         return  faces.stream().map(ModelFace::getMaxY).max(Integer::compare).get();
+    }
+
+    public void changeProjected() {
+        this.projected = !this.projected;
     }
 }
 
